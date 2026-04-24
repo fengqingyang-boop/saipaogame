@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>竖屏赛跑游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 480px;
+            height: 800px;
+            background: #2c3e50;
+            border: 4px solid #e74c3c;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 16px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            z-index: 10;
+        }
+        
+        #ui div {
+            margin-bottom: 8px;
+            padding: 5px 10px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 5px;
+        }
+        
+        #items {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            color: white;
+            font-size: 14px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            z-index: 10;
+        }
+        
+        #items div {
+            margin-bottom: 5px;
+            padding: 5px 10px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 5px;
+        }
+        
+        #shop {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            background: rgba(44, 62, 80, 0.95);
+            border: 3px solid #f39c12;
+            border-radius: 15px;
+            padding: 20px;
+            color: white;
+            z-index: 100;
+            display: none;
+        }
+        
+        #shop h2 {
+            text-align: center;
+            color: #f39c12;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        
+        .shop-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            margin: 10px 0;
+            background: rgba(52, 73, 94, 0.8);
+            border-radius: 10px;
+            border: 2px solid #3498db;
+        }
+        
+        .shop-item:hover {
+            background: rgba(52, 73, 94, 1);
+            border-color: #2980b9;
+        }
+        
+        .shop-item-info {
+            flex: 1;
+        }
+        
+        .shop-item-info h3 {
+            color: #2ecc71;
+            margin-bottom: 5px;
+        }
+        
+        .shop-item-info p {
+            color: #bdc3c7;
+            font-size: 14px;
+        }
+        
+        .shop-item-price {
+            color: #f1c40f;
+            font-weight: bold;
+            font-size: 18px;
+            margin-right: 15px;
+        }
+        
+        .buy-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        
+        .buy-btn:hover {
+            background: #c0392b;
+        }
+        
+        .buy-btn:disabled {
+            background: #7f8c8d;
+            cursor: not-allowed;
+        }
+        
+        #closeShop {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        #closeShop:hover {
+            color: #e74c3c;
+        }
+        
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 350px;
+            background: rgba(44, 62, 80, 0.95);
+            border: 3px solid #e74c3c;
+            border-radius: 15px;
+            padding: 30px;
+            color: white;
+            z-index: 100;
+            display: none;
+            text-align: center;
+        }
+        
+        #gameOver h2 {
+            color: #f39c12;
+            margin-bottom: 15px;
+            font-size: 28px;
+        }
+        
+        #gameOver p {
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        #restartBtn {
+            background: #2ecc71;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 20px;
+            transition: background 0.3s;
+        }
+        
+        #restartBtn:hover {
+            background: #27ae60;
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            color: #95a5a6;
+            font-size: 12px;
+            text-align: right;
+        }
+        
+        #controls div {
+            margin-bottom: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="ui">
+            <div>🏃 进度: <span id="progress">0</span>%</div>
+            <div>💰 金币: <span id="coins">0</span></div>
+            <div>⚡ 加速: <span id="boost">就绪</span></div>
+            <div>🏆 名次: <span id="rank">-</span></div>
+        </div>
+        
+        <div id="items">
+            <div>1️⃣ 加速道具: <span id="item1">0</span></div>
+            <div>2️⃣ 减速道具: <span id="item2">0</span></div>
+            <div>3️⃣ 副作用道具: <span id="item3">0</span></div>
+        </div>
+        
+        <div id="controls">
+            <div>A/D - 左右移动</div>
+            <div>SHIFT - 加速</div>
+            <div>鼠标左键 - 攻击</div>
+            <div>1/2/3 - 使用道具</div>
+            <div>ESC - 打开商店</div>
+        </div>
+        
+        <div id="shop">
+            <button id="closeShop">×</button>
+            <h2>🏪 游戏商城</h2>
+            <div class="shop-item">
+                <div class="shop-item-info">
+                    <h3>⚡ 极速道具</h3>
+                    <p>瞬间爆发速度，持续3秒</p>
+                </div>
+                <div class="shop-item-price">💰 50</div>
+                <button class="buy-btn" onclick="buyItem(1)">购买</button>
+            </div>
+            <div class="shop-item">
+                <div class="shop-item-info">
+                    <h3>🐌 减速炸弹</h3>
+                    <p>随机让一名对手减速50%</p>
+                </div>
+                <div class="shop-item-price">💰 30</div>
+                <button class="buy-btn" onclick="buyItem(2)">购买</button>
+            </div>
+            <div class="shop-item">
+                <div class="shop-item-info">
+                    <h3>🎲 随机骰子</h3>
+                    <p>使用后自己向后跑，娱乐性质</p>
+                </div>
+                <div class="shop-item-price">💰 10</div>
+                <button class="buy-btn" onclick="buyItem(3)">购买</button>
+            </div>
+        </div>
+        
+        <div id="gameOver">
+            <h2 id="gameResult">游戏结束</h2>
+            <p id="finalRank">最终名次: 第1名</p>
+            <p id="finalCoins">获得金币: 0</p>
+            <button id="restartBtn">重新开始</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const shop = document.getElementById('shop');
+        const gameOverScreen = document.getElementById('gameOver');
+        
+        canvas.width = 480;
+        canvas.height = 800;
+        
+        const TRACK_LENGTH = 100;
+        const TRACK_LANES = 5;
+        const LANE_WIDTH = canvas.width / TRACK_LANES;
+        
+        let gameState = 'playing';
+        let shopOpen = false;
+        
+        const player = {
+            x: canvas.width / 2,
+            y: canvas.height - 150,
+            lane: 2,
+            width: 40,
+            height: 60,
+            speed: 2,
+            baseSpeed: 2,
+            boosting: false,
+            boostCooldown: 0,
+            boostDuration: 0,
+            coins: 0,
+            items: {
+                1: 0,
+                2: 0,
+                3: 0
+            },
+            distance: 0,
+            sideEffect: false,
+            sideEffectDuration: 0,
+            color: '#e74c3c',
+            attacking: false,
+            attackTimer: 0
+        };
+        
+        const aiPlayers = [];
+        for (let i = 0; i < 4; i++) {
+            aiPlayers.push({
+                x: LANE_WIDTH * i + LANE_WIDTH / 2,
+                y: canvas.height - 150 - (i + 1) * 100,
+                lane: i,
+                width: 40,
+                height: 60,
+                speed: 1.5 + Math.random() * 0.8,
+                baseSpeed: 1.5 + Math.random() * 0.8,
+                coins: 0,
+                distance: 0,
+                color: ['#3498db', '#2ecc71', '#9b59b6', '#f39c12'][i],
+                slowed: false,
+                slowDuration: 0
+            });
+        }
+        
+        const coins = [];
+        const particles = [];
+        const attacks = [];
+        
+        const keys = {
+            a: false,
+            d: false,
+            shift: false
+        };
+        
+        const scrollSpeed = 1;
+        let scrollOffset = 0;
+        
+        const decorations = [];
+        for (let i = 0; i < 50; i++) {
+            decorations.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: Math.random() * 3 + 1,
+                type: Math.floor(Math.random() * 3)
+            });
+        }
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'a' || e.key === 'A') keys.a = true;
+            if (e.key === 'd' || e.key === 'D') keys.d = true;
+            if (e.key === 'Shift') keys.shift = true;
+            if (e.key === 'Escape') toggleShop();
+            if (e.key === '1') useItem(1);
+            if (e.key === '2') useItem(2);
+            if (e.key === '3') useItem(3);
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'a' || e.key === 'A') keys.a = false;
+            if (e.key === 'd' || e.key === 'D') keys.d = false;
+            if (e.key === 'Shift') keys.shift = false;
+        });
+        
+        canvas.addEventListener('mousedown', (e) => {
+            if (e.button === 0 && gameState === 'playing' && !shopOpen) {
+                attack();
+            }
+        });
+        
+        function toggleShop() {
+            if (gameState === 'playing') {
+                shopOpen = !shopOpen;
+                shop.style.display = shopOpen ? 'block' : 'none';
+            }
+        }
+        
+        document.getElementById('closeShop').addEventListener('click', toggleShop);
+        
+        function buyItem(itemId) {
+            const prices = {1: 50, 2: 30, 3: 10};
+            const price = prices[itemId];
+            
+            if (player.coins >= price) {
+                player.coins -= price;
+                player.items[itemId]++;
+                updateUI();
+            }
+        }
+        
+        function useItem(itemId) {
+            if (player.items[itemId] <= 0 || gameState !== 'playing' || shopOpen) return;
+            
+            player.items[itemId]--;
+            
+            if (itemId === 1) {
+                player.boosting = true;
+                player.boostDuration = 180;
+                createParticles(player.x, player.y, '#f1c40f', 20);
+            } else if (itemId === 2) {
+                const targets = aiPlayers.filter(ai => !ai.slowed);
+                if (targets.length > 0) {
+                    const target = targets[Math.floor(Math.random() * targets.length)];
+                    target.slowed = true;
+                    target.slowDuration = 300;
+                    target.speed = target.baseSpeed * 0.5;
+                    createParticles(target.x, target.y, '#9b59b6', 15);
+                }
+            } else if (itemId === 3) {
+                player.sideEffect = true;
+                player.sideEffectDuration = 120;
+                createParticles(player.x, player.y, '#e74c3c', 25);
+            }
+            
+            updateUI();
+        }
+        
+        function attack() {
+            if (player.attacking) return;
+            
+            player.attacking = true;
+            player.attackTimer = 30;
+            
+            attacks.push({
+                x: player.x,
+                y: player.y - 50,
+                radius: 0,
+                maxRadius: 80,
+                lifetime: 20
+            });
+            
+            aiPlayers.forEach(ai => {
+                const dist = Math.sqrt(
+                    Math.pow(ai.x - player.x, 2) + 
+                    Math.pow(ai.y - player.y, 2)
+                );
+                
+                if (dist < 100) {
+                    const coinDrop = Math.floor(Math.random() * 10) + 5;
+                    for (let i = 0; i < coinDrop; i++) {
+                        coins.push({
+                            x: ai.x + (Math.random() - 0.5) * 60,
+                            y: ai.y + (Math.random() - 0.5) * 60,
+                            value: Math.floor(Math.random() * 3) + 1,
+                            collected: false,
+                            lifetime: 300
+                        });
+                    }
+                    createParticles(ai.x, ai.y, '#f1c40f', 30);
+                }
+            });
+        }
+        
+        function createParticles(x, y, color, count) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8,
+                    size: Math.random() * 5 + 2,
+                    color: color,
+                    lifetime: 60
+                });
+            }
+        }
+        
+        function updateUI() {
+            document.getElementById('progress').textContent = Math.floor(player.distance);
+            document.getElementById('coins').textContent = player.coins;
+            document.getElementById('boost').textContent = 
+                player.boostCooldown > 0 ? `冷却 ${Math.ceil(player.boostCooldown / 60)}秒` : 
+                player.boosting ? '加速中!' : '就绪';
+            document.getElementById('item1').textContent = player.items[1];
+            document.getElementById('item2').textContent = player.items[2];
+            document.getElementById('item3').textContent = player.items[3];
+            
+            const allRunners = [player, ...aiPlayers].sort((a, b) => b.distance - a.distance);
+            const rank = allRunners.indexOf(player) + 1;
+            const rankText = ['第1名', '第2名', '第3名', '第4名', '第5名'][rank - 1];
+            document.getElementById('rank').textContent = rankText;
+        }
+        
+        function update() {
+            if (gameState !== 'playing' || shopOpen) return;
+            
+            if (keys.a && player.lane > 0) {
+                player.lane--;
+                keys.a = false;
+            }
+            if (keys.d && player.lane < TRACK_LANES - 1) {
+                player.lane++;
+                keys.d = false;
+            }
+            
+            const targetX = player.lane * LANE_WIDTH + LANE_WIDTH / 2;
+            player.x += (targetX - player.x) * 0.2;
+            
+            if (keys.shift && player.boostCooldown <= 0 && !player.boosting) {
+                player.boosting = true;
+                player.boostDuration = 120;
+            }
+            
+            if (player.boosting) {
+                player.boostDuration--;
+                if (player.boostDuration <= 0) {
+                    player.boosting = false;
+                    player.boostCooldown = 300;
+                }
+            }
+            
+            if (player.boostCooldown > 0) {
+                player.boostCooldown--;
+            }
+            
+            if (player.sideEffect) {
+                player.sideEffectDuration--;
+                if (player.sideEffectDuration <= 0) {
+                    player.sideEffect = false;
+                }
+            }
+            
+            if (player.attacking) {
+                player.attackTimer--;
+                if (player.attackTimer <= 0) {
+                    player.attacking = false;
+                }
+            }
+            
+            let moveSpeed = player.baseSpeed;
+            if (player.boosting) moveSpeed *= 2;
+            
+            if (player.sideEffect) {
+                player.distance -= moveSpeed * 0.5 / 10;
+                scrollOffset -= scrollSpeed * 0.5;
+            } else {
+                player.distance += moveSpeed / 10;
+                scrollOffset += scrollSpeed * (player.boosting ? 2 : 1);
+            }
+            
+            aiPlayers.forEach(ai => {
+                if (ai.slowed) {
+                    ai.slowDuration--;
+                    if (ai.slowDuration <= 0) {
+                        ai.slowed = false;
+                        ai.speed = ai.baseSpeed;
+                    }
+                }
+                
+                if (Math.random() < 0.02) {
+                    ai.lane = Math.max(0, Math.min(TRACK_LANES - 1, ai.lane + (Math.random() > 0.5 ? 1 : -1)));
+                }
+                
+                const aiTargetX = ai.lane * LANE_WIDTH + LANE_WIDTH / 2;
+                ai.x += (aiTargetX - ai.x) * 0.1;
+                ai.distance += ai.speed / 10;
+                ai.y = canvas.height - 150 - (ai.distance - player.distance) * 80;
+            });
+            
+            coins.forEach(coin => {
+                coin.lifetime--;
+                
+                if (!coin.collected) {
+                    const dist = Math.sqrt(
+                        Math.pow(coin.x - player.x, 2) + 
+                        Math.pow(coin.y - player.y, 2)
+                    );
+                    
+                    if (dist < 40) {
+                        coin.collected = true;
+                        player.coins += coin.value;
+                        createParticles(coin.x, coin.y, '#f1c40f', 8);
+                    }
+                }
+            });
+            
+            coins.filter(coin => coin.lifetime <= 0 || coin.collected);
+            
+            particles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.2;
+                p.lifetime--;
+                p.size *= 0.95;
+            });
+            particles.splice(0, particles.length, ...particles.filter(p => p.lifetime > 0));
+            
+            attacks.forEach(a => {
+                a.radius += 4;
+                a.lifetime--;
+            });
+            attacks.splice(0, attacks.length, ...attacks.filter(a => a.lifetime > 0));
+            
+            decorations.forEach(d => {
+                d.y += scrollSpeed;
+                if (d.y > canvas.height) {
+                    d.y = -10;
+                    d.x = Math.random() * canvas.width;
+                }
+            });
+            
+            if (player.distance >= TRACK_LENGTH) {
+                endGame();
+            }
+            
+            coins.splice(0, coins.length, ...coins.filter(c => !c.collected && c.lifetime > 0));
+            
+            updateUI();
+        }
+        
+        function endGame() {
+            gameState = 'over';
+            
+            const allRunners = [
+                { name: '你', distance: player.distance },
+                ...aiPlayers.map((ai, i) => ({ 
+                    name: `AI-${i + 1}`, 
+                    distance: ai.distance 
+                }))
+            ].sort((a, b) => b.distance - a.distance);
+            
+            const rank = allRunners.findIndex(r => r.name === '你') + 1;
+            
+            document.getElementById('gameResult').textContent = 
+                rank === 1 ? '🎉 恭喜获胜！' : `游戏结束`;
+            document.getElementById('finalRank').textContent = `最终名次: 第${rank}名`;
+            document.getElementById('finalCoins').textContent = `获得金币: ${player.coins}`;
+            
+            gameOverScreen.style.display = 'block';
+        }
+        
+        document.getElementById('restartBtn').addEventListener('click', () => {
+            location.reload();
+        });
+        
+        function draw() {
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#34495e';
+            ctx.fillRect(LANE_WIDTH * 0.5, 0, canvas.width - LANE_WIDTH, canvas.height);
+            
+            ctx.strokeStyle = '#f39c12';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([20, 20]);
+            for (let i = 1; i < TRACK_LANES; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * LANE_WIDTH, 0);
+                ctx.lineTo(i * LANE_WIDTH, canvas.height);
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+            
+            decorations.forEach(d => {
+                ctx.fillStyle = ['#7f8c8d', '#95a5a6', '#636e72'][d.type];
+                ctx.beginPath();
+                ctx.arc(d.x, d.y, d.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            
+            const finishLineY = canvas.height - 150 - (TRACK_LENGTH - player.distance) * 80;
+            if (finishLineY > -50 && finishLineY < canvas.height) {
+                ctx.fillStyle = '#2c3e50';
+                ctx.fillRect(0, finishLineY - 5, canvas.width, 50);
+                
+                const squareSize = 20;
+                for (let i = 0; i < canvas.width / squareSize; i++) {
+                    for (let j = 0; j < 2; j++) {
+                        if ((i + j) % 2 === 0) {
+                            ctx.fillStyle = '#f1c40f';
+                        } else {
+                            ctx.fillStyle = '#2c3e50';
+                        }
+                        ctx.fillRect(
+                            i * squareSize,
+                            finishLineY - 5 + j * squareSize,
+                            squareSize,
+                            squareSize
+                        );
+                    }
+                }
+                
+                ctx.fillStyle = '#f39c12';
+                ctx.font = 'bold 20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('🏁 终点', canvas.width / 2, finishLineY + 30);
+            }
+            
+            coins.forEach(coin => {
+                const alpha = coin.lifetime < 60 ? coin.lifetime / 60 : 1;
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = '#f1c40f';
+                ctx.beginPath();
+                ctx.arc(coin.x, coin.y, 12, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#f39c12';
+                ctx.beginPath();
+                ctx.arc(coin.x, coin.y, 8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#f1c40f';
+                ctx.font = 'bold 10px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(coin.value, coin.x, coin.y);
+                ctx.globalAlpha = 1;
+            });
+            
+            attacks.forEach(a => {
+                const alpha = a.lifetime / 20;
+                ctx.strokeStyle = `rgba(231, 76, 60, ${alpha})`;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(a.x, a.y, a.radius, 0, Math.PI * 2);
+                ctx.stroke();
+            });
+            
+            aiPlayers.forEach(ai => {
+                if (ai.y < -100 || ai.y > canvas.height + 100) return;
+                
+                ctx.fillStyle = ai.slowed ? '#9b59b6' : ai.color;
+                ctx.fillRect(ai.x - ai.width / 2, ai.y - ai.height, ai.width, ai.height);
+                
+                ctx.fillStyle = '#f5f0e1';
+                ctx.beginPath();
+                ctx.arc(ai.x, ai.y - ai.height - 5, 15, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#2c3e50';
+                ctx.fillRect(ai.x - 8, ai.y - ai.height - 8, 4, 4);
+                ctx.fillRect(ai.x + 4, ai.y - ai.height - 8, 4, 4);
+                
+                if (ai.slowed) {
+                    ctx.fillStyle = 'rgba(155, 89, 182, 0.5)';
+                    ctx.beginPath();
+                    ctx.arc(ai.x, ai.y - ai.height / 2, 35, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+            
+            ctx.fillStyle = player.sideEffect ? '#c0392b' : 
+                           player.boosting ? '#f39c12' : player.color;
+            ctx.fillRect(player.x - player.width / 2, player.y - player.height, player.width, player.height);
+            
+            ctx.fillStyle = '#f5f0e1';
+            ctx.beginPath();
+            ctx.arc(player.x, player.y - player.height - 5, 15, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillRect(player.x - 8, player.y - player.height - 8, 4, 4);
+            ctx.fillRect(player.x + 4, player.y - player.height - 8, 4, 4);
+            
+            if (player.boosting) {
+                ctx.fillStyle = 'rgba(243, 156, 18, 0.5)';
+                ctx.beginPath();
+                ctx.arc(player.x, player.y - player.height / 2, 40, 0, Math.PI * 2);
+                ctx.fill();
+                
+                for (let i = 0; i < 5; i++) {
+                    ctx.fillStyle = `rgba(243, 156, 18, ${0.3 - i * 0.05})`;
+                    ctx.fillRect(
+                        player.x - player.width / 2 - 5 - i * 8,
+                        player.y - player.height + 10,
+                        10,
+                        20
+                    );
+                }
+            }
+            
+            if (player.sideEffect) {
+                ctx.fillStyle = 'rgba(231, 76, 60, 0.3)';
+                ctx.beginPath();
+                ctx.arc(player.x, player.y - player.height / 2, 45, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#e74c3c';
+                ctx.font = 'bold 16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('⚠️ 副作用中', player.x, player.y + 30);
+            }
+            
+            if (player.attacking) {
+                ctx.strokeStyle = '#e74c3c';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(player.x, player.y - 50, 100 * (1 - player.attackTimer / 30), 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            
+            particles.forEach(p => {
+                ctx.globalAlpha = p.lifetime / 60;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+        }
+        
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        updateUI();
+        gameLoop();
+    </script>
+</body>
+</html>
