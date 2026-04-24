@@ -308,8 +308,8 @@
             lane: 2,
             width: 40,
             height: 60,
-            speed: 2,
-            baseSpeed: 2,
+            speed: 0.8,
+            baseSpeed: 0.8,
             boosting: false,
             boostCooldown: 0,
             boostDuration: 0,
@@ -335,8 +335,8 @@
                 lane: i,
                 width: 40,
                 height: 60,
-                speed: 1.5 + Math.random() * 0.8,
-                baseSpeed: 1.5 + Math.random() * 0.8,
+                speed: 0.6 + Math.random() * 0.4,
+                baseSpeed: 0.6 + Math.random() * 0.4,
                 coins: 0,
                 distance: 0,
                 color: ['#3498db', '#2ecc71', '#9b59b6', '#f39c12'][i],
@@ -554,10 +554,8 @@
             
             if (player.sideEffect) {
                 player.distance -= moveSpeed * 0.5 / 10;
-                scrollOffset -= scrollSpeed * 0.5;
             } else {
                 player.distance += moveSpeed / 10;
-                scrollOffset += scrollSpeed * (player.boosting ? 2 : 1);
             }
             
             aiPlayers.forEach(ai => {
@@ -613,14 +611,6 @@
             });
             attacks.splice(0, attacks.length, ...attacks.filter(a => a.lifetime > 0));
             
-            decorations.forEach(d => {
-                d.y += scrollSpeed;
-                if (d.y > canvas.height) {
-                    d.y = -10;
-                    d.x = Math.random() * canvas.width;
-                }
-            });
-            
             if (player.distance >= TRACK_LENGTH) {
                 endGame();
             }
@@ -673,12 +663,35 @@
             }
             ctx.setLineDash([]);
             
-            decorations.forEach(d => {
-                ctx.fillStyle = ['#7f8c8d', '#95a5a6', '#636e72'][d.type];
+            const effectiveScrollSpeed = player.boosting ? 8 : 4;
+            const scrollY = (player.distance * 8) % 60;
+            
+            ctx.strokeStyle = '#4a6278';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([]);
+            
+            for (let y = -60 + scrollY; y < canvas.height + 60; y += 60) {
                 ctx.beginPath();
-                ctx.arc(d.x, d.y, d.size, 0, Math.PI * 2);
-                ctx.fill();
-            });
+                ctx.moveTo(LANE_WIDTH * 0.5 + 10, y);
+                ctx.lineTo(canvas.width - LANE_WIDTH * 0.5 - 10, y);
+                ctx.stroke();
+            }
+            
+            ctx.fillStyle = '#f39c12';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            const metersPerScreen = 10;
+            const startMeter = Math.floor(player.distance - (canvas.height - 150) / 80 * metersPerScreen);
+            
+            for (let m = Math.max(0, startMeter); m <= Math.min(TRACK_LENGTH, player.distance + 20); m += 10) {
+                if (m === 0) continue;
+                const meterY = canvas.height - 150 - (m - player.distance) * 8;
+                if (meterY > 0 && meterY < canvas.height) {
+                    ctx.fillStyle = '#f39c12';
+                    ctx.fillText(`${m}米`, LANE_WIDTH * 0.25, meterY + 5);
+                    ctx.fillText(`${m}米`, canvas.width - LANE_WIDTH * 0.25, meterY + 5);
+                }
+            }
             
             const finishLineY = canvas.height - 150 - (TRACK_LENGTH - player.distance) * 80;
             if (finishLineY > -50 && finishLineY < canvas.height) {
