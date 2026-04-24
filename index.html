@@ -652,9 +652,13 @@
             ctx.fillStyle = '#34495e';
             ctx.fillRect(LANE_WIDTH * 0.5, 0, canvas.width - LANE_WIDTH, canvas.height);
             
+            const dashOffset = (player.distance * 20) % 40;
+            const scrollY = (player.distance * 8) % 60;
+            
             ctx.strokeStyle = '#f39c12';
             ctx.lineWidth = 3;
             ctx.setLineDash([20, 20]);
+            ctx.lineDashOffset = -dashOffset;
             for (let i = 1; i < TRACK_LANES; i++) {
                 ctx.beginPath();
                 ctx.moveTo(i * LANE_WIDTH, 0);
@@ -662,9 +666,7 @@
                 ctx.stroke();
             }
             ctx.setLineDash([]);
-            
-            const effectiveScrollSpeed = player.boosting ? 8 : 4;
-            const scrollY = (player.distance * 8) % 60;
+            ctx.lineDashOffset = 0;
             
             ctx.strokeStyle = '#4a6278';
             ctx.lineWidth = 2;
@@ -677,6 +679,12 @@
                 ctx.stroke();
             }
             
+            ctx.fillStyle = '#e67e22';
+            for (let y = -80 + scrollY * 1.5; y < canvas.height + 80; y += 80) {
+                ctx.fillRect(LANE_WIDTH * 0.5 - 5, y, 10, 30);
+                ctx.fillRect(canvas.width - LANE_WIDTH * 0.5 - 5, y, 10, 30);
+            }
+            
             ctx.fillStyle = '#f39c12';
             ctx.font = 'bold 14px Arial';
             ctx.textAlign = 'center';
@@ -687,9 +695,13 @@
                 if (m === 0) continue;
                 const meterY = canvas.height - 150 - (m - player.distance) * 8;
                 if (meterY > 0 && meterY < canvas.height) {
+                    ctx.fillStyle = 'rgba(44, 62, 80, 0.8)';
+                    ctx.fillRect(LANE_WIDTH * 0.05, meterY - 10, LANE_WIDTH * 0.4, 25);
+                    ctx.fillRect(canvas.width - LANE_WIDTH * 0.45, meterY - 10, LANE_WIDTH * 0.4, 25);
+                    
                     ctx.fillStyle = '#f39c12';
-                    ctx.fillText(`${m}米`, LANE_WIDTH * 0.25, meterY + 5);
-                    ctx.fillText(`${m}米`, canvas.width - LANE_WIDTH * 0.25, meterY + 5);
+                    ctx.fillText(`${m}米`, LANE_WIDTH * 0.25, meterY + 7);
+                    ctx.fillText(`${m}米`, canvas.width - LANE_WIDTH * 0.25, meterY + 7);
                 }
             }
             
